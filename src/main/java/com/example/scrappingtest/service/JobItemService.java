@@ -68,10 +68,7 @@ public class JobItemService {
 		List<JobItem> updatedJobItems = jobItemScrapper.getData(urlWithFilter, jobFunction);
 		validateJobItemsBeforeSave(updatedJobItems);
 		Set<JobItem> jobItems = new HashSet<>(jobItemRepository.findByJobFunctionId(jobFunction.getId()));
-		log.info(String.valueOf(updatedJobItems.size()));
-		log.info(String.valueOf(jobItems.size()));
 		jobItems.addAll(updatedJobItems);
-		log.info(String.valueOf(jobItems.size()));
 		jobItemRepository.saveAll(jobItems);
 	}
 
