@@ -44,7 +44,7 @@ public class JobItemService {
 		return jobItemRepository.findByJobFunctionId(jobFunction.getId());
 	}
 
-	@Scheduled(initialDelay = 0, fixedRate = 2 * 60 * 1000)
+	@Scheduled(initialDelay = 0, fixedRate = 24 * 60 * 1000)
 	public void updateJobsByAllJobFunctions() throws IOException {
 		List<JobFunction> jobFunctions = jobFunctionService.findAll();
 
