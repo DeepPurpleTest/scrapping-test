@@ -14,12 +14,12 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -34,10 +34,9 @@ public class JobItemService {
 	private String url;
 
 	public List<JobItem> findByJobFunction(String name) {
-		String decodedName = URLDecoder.decode(name, StandardCharsets.UTF_8);
-		Optional<JobFunction> byName = jobFunctionService.findByName(decodedName);
+		Optional<JobFunction> byName = jobFunctionService.findByName(name);
 
-		if(byName.isEmpty()) {
+		if (byName.isEmpty()) {
 			throw new RuntimeException("JobFunction is not found");
 		}
 
@@ -45,7 +44,7 @@ public class JobItemService {
 		return jobItemRepository.findByJobFunctionId(jobFunction.getId());
 	}
 
-	@Scheduled(initialDelay = 0, fixedRate = 24 * 60 * 60 * 1000)
+	@Scheduled(initialDelay = 0, fixedRate = 2 * 60 * 1000)
 	public void updateJobsByAllJobFunctions() throws IOException {
 		List<JobFunction> jobFunctions = jobFunctionService.findAll();
 
@@ -67,7 +66,52 @@ public class JobItemService {
 		String urlWithFilter = url + "?filter=" + encodedJobFunction;
 
 		List<JobItem> updatedJobItems = jobItemScrapper.getData(urlWithFilter, jobFunction);
-		jobItemRepository.saveAll(updatedJobItems);
+		validateJobItemsBeforeSave(updatedJobItems);
+		Set<JobItem> jobItems = new HashSet<>(jobItemRepository.findByJobFunctionId(jobFunction.getId()));
+		log.info(String.valueOf(updatedJobItems.size()));
+		log.info(String.valueOf(jobItems.size()));
+		jobItems.addAll(updatedJobItems);
+		log.info(String.valueOf(jobItems.size()));
+		jobItemRepository.saveAll(jobItems);
+	}
+
+	private void validateJobItemsBeforeSave(List<JobItem> jobItems) {
+		for (JobItem jobItem : jobItems) {
+			validateJobItem(jobItem);
+		}
+	}
+
+	private void validateJobItem(JobItem jobItem) {
+		if (jobItem.getJobPageUrl() == null || jobItem.getJobPageUrl().isEmpty()) {
+			jobItem.setJobPageUrl("NOT_FOUND");
+		}
+		if (jobItem.getPositionName() == null || jobItem.getPositionName().isEmpty()) {
+			jobItem.setPositionName("NOT_FOUND");
+		}
+		if (jobItem.getOrganizationUrl() == null || jobItem.getOrganizationUrl().isEmpty()) {
+			jobItem.setOrganizationUrl("NOT_FOUND");
+		}
+		if (jobItem.getLogo() == null || jobItem.getLogo().isEmpty()) {
+			jobItem.setLogo("NOT_FOUND");
+		}
+		if (jobItem.getTitle() == null || jobItem.getTitle().isEmpty()) {
+			jobItem.setTitle("NOT_FOUND");
+		}
+		if (jobItem.getLaborFunction() == null || jobItem.getLaborFunction().isEmpty()) {
+			jobItem.setLaborFunction("NOT_FOUND");
+		}
+		if (jobItem.getAddress() == null || jobItem.getAddress().isEmpty()) {
+			jobItem.setAddress("NOT_FOUND");
+		}
+		if (jobItem.getPostedDate() == null || jobItem.getPostedDate().isEmpty()) {
+			jobItem.setPostedDate("NOT_FOUND");
+		}
+		if (jobItem.getDescription() == null || jobItem.getDescription().isEmpty()) {
+			jobItem.setDescription("NOT_FOUND");
+		}
+		if (jobItem.getTags() == null || jobItem.getTags().isEmpty()) {
+			jobItem.setTags("NOT_FOUND");
+		}
 	}
 
 	private String encode(String s) {

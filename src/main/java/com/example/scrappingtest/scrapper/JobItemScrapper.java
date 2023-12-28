@@ -12,6 +12,7 @@ import org.jsoup.select.Elements;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,38 +31,24 @@ public class JobItemScrapper {
 			jobItem.setJobFunction(jobFunction);
 
 //			log.info("<< Fill jobPageUrls >>");
-			Element linkElement = jobItemElement.select("a[data-testid=read-more]").first();
-			String jobPageUrl = linkElement.absUrl("href");
+			String jobPageUrl = extractAbsUrlFromElement(jobItemElement, "a[data-testid=read-more]", "href");
 			jobItem.setJobPageUrl(jobPageUrl);
 
 //			log.info("<< Fill job positionName >>");
-			Element positionNameElement = jobItemElement.select("div[itemprop=title]").first();
-			String positionName = positionNameElement.text();
+			String positionName = extractTextFromElement(jobItemElement, "div[itemprop=title]");
 			jobItem.setPositionName(positionName);
 
 //			log.info("<< Try to fill title >>");
-			Element titleElement = jobItemElement.select("a[data-testid=link]").first();
-			String title = titleElement.text();
+			String title = extractTextFromElement(jobItemElement, "a[data-testid=link]");
 			jobItem.setTitle(title);
 
 //			log.info("<< Try to fill logo >>");
-			Element logoElement = jobItemElement.select("img[data-testid]").first();
-			String logo = logoElement.absUrl("src");
+			String logo = extractAbsUrlFromElement(jobItemElement, "img[data-testid]", "src");
 			jobItem.setLogo(logo);
 
 //			log.info("<< Fill tags >>");
-			Elements tags = jobItemElement.select("div[data-testid=tag]");
-			StringBuilder jobItemTags = new StringBuilder();
-
-			for (Element tag : tags) {
-				jobItemTags.append(tag.text()).append(",");
-			}
-
-			if (jobItemTags.length() > 0) {
-				jobItemTags.deleteCharAt(jobItemTags.length() - 1);
-			}
-			jobItem.setTags(jobItemTags.toString());
-
+			String tags = extractTagsFromElement(jobItemElement);
+			jobItem.setTags(tags);
 
 			jobItems.add(jobItem);
 		}
@@ -72,13 +59,8 @@ public class JobItemScrapper {
 				document = Jsoup.connect(jobItem.getJobPageUrl()).get();
 
 //				log.info("<< Try to fill organizationUrl >>");
-				Element organizationUrlElement = document.select("a[data-testid=button]").first();
-				if (organizationUrlElement != null) {
-					String organizationUrl = organizationUrlElement.absUrl("href");
-					jobItem.setOrganizationUrl(organizationUrl);
-				} else {
-					jobItem.setOrganizationUrl("NOT_FOUND");
-				}
+				String organizationUrl = extractAbsUrlFromElement(document, "a[data-testid=button]", "href");
+				jobItem.setOrganizationUrl(organizationUrl);
 
 //				log.info("<< Try fill logo >>");
 //				Element logoElement = document.select("img[data-testid=image]").first();
@@ -94,37 +76,43 @@ public class JobItemScrapper {
 					jobItem.setLaborFunction(elements.get(0).text());
 					jobItem.setAddress(elements.get(1).text());
 					jobItem.setPostedDate(elements.get(2).text());
-				} else {
-					jobItem.setLaborFunction("NOT_FOUND");
-					jobItem.setAddress("NOT_FOUND");
-					jobItem.setPostedDate("NOT_FOUND");
 				}
 
 //				log.info("<< Try to fill description >>");
-				Element descriptionElement = document.select("div[class=sc-beqWaB fmCCHr]").first();
-				if (descriptionElement != null) {
-					jobItem.setDescription(descriptionElement.text());
-				} else {
-					jobItem.setDescription("NOT_FOUND");
-				}
+				String description = extractTextFromElement(document, "div[class=sc-beqWaB fmCCHr]");
+				jobItem.setDescription(description);
 
-			} catch (HttpStatusException | UnsupportedMimeTypeException e) {
-				log.warn("<< incorrect job details url or private for job_function: "+ jobFunction.getName() +
-						" and job item " + jobItem.getTitle() +">>");
-				fillEmptyFields(jobItem);
+			} catch (HttpStatusException | UnsupportedMimeTypeException | SocketTimeoutException e) {
+				log.warn("<< Unavailable or private job url for job_function " + jobFunction.getName() +
+						" with title " + jobItem.getTitle() + " and position " + jobItem.getPositionName() + " >>");
 			}
-
 		}
 
 		log.info("<< Complete job function: " + jobFunction.getName() + " >>");
 		return jobItems;
 	}
 
-	private void fillEmptyFields(JobItem jobItem) {
-		jobItem.setOrganizationUrl("NOT_FOUND");
-		jobItem.setLaborFunction("NOT_FOUND");
-		jobItem.setAddress("NOT_FOUND");
-		jobItem.setPostedDate("NOT_FOUND");
-		jobItem.setDescription("NOT_FOUND");
+	private String extractTextFromElement(Element element, String selector) {
+		Element selectedElement = element.select(selector).first();
+		return selectedElement != null ? selectedElement.text() : "";
+	}
+
+	private String extractAbsUrlFromElement(Element element, String selector, String attribute) {
+		Element selectedElement = element.select(selector).first();
+		return selectedElement != null ? selectedElement.absUrl(attribute) : "";
+	}
+
+	private String extractTagsFromElement(Element element) {
+		Elements tags = element.select("div[data-testid=tag]");
+		StringBuilder jobItemTags = new StringBuilder();
+		for (Element tag : tags) {
+			jobItemTags.append(tag.text()).append(",");
+		}
+
+		if (jobItemTags.length() > 0) {
+			jobItemTags.deleteCharAt(jobItemTags.length() - 1);
+		}
+
+		return jobItemTags.toString();
 	}
 }
