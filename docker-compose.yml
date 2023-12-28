@@ -1,0 +1,30 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:alpine
+    container_name: scrapping-test-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5433:5432"
+    networks:
+      - scrapping-test
+
+  scrapping-test:
+    image: scrapping-test
+    container_name: scrapping-test
+    build:
+      context: .
+      dockerfile: /Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+    networks:
+      - scrapping-test
+
+networks:
+  scrapping-test:
+    driver: bridge
