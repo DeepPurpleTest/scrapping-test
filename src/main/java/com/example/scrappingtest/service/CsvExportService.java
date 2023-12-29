@@ -4,8 +4,6 @@ import com.example.scrappingtest.entity.JobItem;
 
 import java.util.List;
 
-public interface JobItemService {
-	List<JobItem> findAll();
-
-	List<JobItem> findByJobFunction(String name);
+public interface CsvExportService {
+	String exportToCsv(List<JobItem> jobItems);
 }

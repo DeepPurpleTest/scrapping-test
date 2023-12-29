@@ -9,3 +9,5 @@ To get started with the Scrapping-test app, follow the detailed installation ins
 
  - Automated Data Collection: The app automatically fetches and updates information from Techstars Jobs based on selected job functions. 
  - Scheduled Updates: Information from the first page of each job function is refreshed every 24 hours, ensuring the latest data.
+ - Export to CSV: Users have the option to download a .csv file containing the collected information. This feature is accessible through the following controller endpoint:
+   http://localhost:8080/csv/export/all
