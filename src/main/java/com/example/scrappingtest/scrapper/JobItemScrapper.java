@@ -30,23 +30,18 @@ public class JobItemScrapper {
 			JobItem jobItem = new JobItem();
 			jobItem.setJobFunction(jobFunction);
 
-//			log.info("<< Fill jobPageUrls >>");
 			String jobPageUrl = extractAbsUrlFromElement(jobItemElement, "a[data-testid=read-more]", "href");
 			jobItem.setJobPageUrl(jobPageUrl);
 
-//			log.info("<< Fill job positionName >>");
 			String positionName = extractTextFromElement(jobItemElement, "div[itemprop=title]");
 			jobItem.setPositionName(positionName);
 
-//			log.info("<< Try to fill title >>");
 			String title = extractTextFromElement(jobItemElement, "a[data-testid=link]");
 			jobItem.setTitle(title);
 
-//			log.info("<< Try to fill logo >>");
 			String logo = extractAbsUrlFromElement(jobItemElement, "img[data-testid]", "src");
 			jobItem.setLogo(logo);
 
-//			log.info("<< Fill tags >>");
 			String tags = extractTagsFromElement(jobItemElement);
 			jobItem.setTags(tags);
 
@@ -54,22 +49,12 @@ public class JobItemScrapper {
 		}
 
 		for (JobItem jobItem : jobItems) {
-//			log.info("<< Try connect to jobPageUrl >>");
 			try {
 				document = Jsoup.connect(jobItem.getJobPageUrl()).get();
 
-//				log.info("<< Try to fill organizationUrl >>");
 				String organizationUrl = extractAbsUrlFromElement(document, "a[data-testid=button]", "href");
 				jobItem.setOrganizationUrl(organizationUrl);
 
-//				log.info("<< Try fill logo >>");
-//				Element logoElement = document.select("img[data-testid=image]").first();
-//				if (logoElement != null) {
-//					String logoUrl = logoElement.absUrl("src");
-//					jobItem.setLogo(logoUrl);
-//				}
-
-//				log.info("<< Try to fill labor function with address and posted date >>");
 				Element element = document.select("div[class=sc-beqWaB sc-gueYoa dmdAKU MYFxR]").first();
 				if (element != null) {
 					Elements elements = element.children();
@@ -78,7 +63,6 @@ public class JobItemScrapper {
 					jobItem.setPostedDate(elements.get(2).text());
 				}
 
-//				log.info("<< Try to fill description >>");
 				String description = extractTextFromElement(document, "div[class=sc-beqWaB fmCCHr]");
 				jobItem.setDescription(description);
 
