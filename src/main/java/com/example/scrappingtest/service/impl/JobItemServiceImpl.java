@@ -15,12 +15,16 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Slf4j
 @Service
@@ -52,15 +56,32 @@ public class JobItemServiceImpl implements JobItemService {
 	}
 
 	@Scheduled(initialDelay = 0, fixedRate = 24 * 60 * 1000)
-	public void updateJobsByAllJobFunctions() throws IOException {
+	public void updateJobsByAllJobFunctions() {
 		List<JobFunction> jobFunctions = jobFunctionService.findAll();
 
 		log.info("<< Update is started >>");
 		long startTime = System.currentTimeMillis();
 
+		ExecutorService executorService = Executors.newFixedThreadPool(jobFunctions.size());
+
+		List<CompletableFuture<Void>> futures = new ArrayList<>();
+
 		for (JobFunction jobFunction : jobFunctions) {
-			updateJobsForJobFunction(jobFunction);
+			CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+				try {
+					updateJobsForJobFunction(jobFunction);
+				} catch (IOException e) {
+					log.error("Error updating jobs for job function: " + jobFunction.getName(), e);
+				}
+			}, executorService);
+
+			futures.add(future);
 		}
+
+		CompletableFuture<Void> allOf = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+		allOf.join();
+
+		executorService.shutdown();
 
 		long endTime = System.currentTimeMillis();
 		long duration = endTime - startTime;
