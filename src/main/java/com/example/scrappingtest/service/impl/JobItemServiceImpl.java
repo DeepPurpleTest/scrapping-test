@@ -55,7 +55,7 @@ public class JobItemServiceImpl implements JobItemService {
 		return jobItemRepository.findByJobFunctionId(jobFunction.getId());
 	}
 
-	@Scheduled(cron = "0 0 0 * * *")
+	@Scheduled(initialDelay = 0, fixedRate = 24 * 60 * 60 * 1000)
 	public void updateJobsByAllJobFunctions() {
 		List<JobFunction> jobFunctions = jobFunctionService.findAll();
 
